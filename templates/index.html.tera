@@ -31,9 +31,8 @@
                 <div class="col-sm-6">
                     <div class="well infobox">
                         <p>Use form below to create awesome <i>runic</i> representation of any text.</p>
-                        <p>This, for example, is representation of my name "Lukáš Němec".
-                            <object data="static/img/myname.svg" type="image/svg+xml"></object>
-                        </p>
+                        <p>This, for example, is representation of my name "Lukáš Němec".<br>
+                            <img width="100%" src="static/img/myname.png"></p>
                         <p>The text is UTF-8 encoded and the resulting <i>bytes</i> are converted to hexadecimal
                         and converted to <i>birkana</i> representation.</p>
                         <p>Don't know what <a href="https://yawar.blogspot.cz/2016/10/the-birkana-hexadecimal-number-symbols.html"><i>birkana</i></a> is?</p>
