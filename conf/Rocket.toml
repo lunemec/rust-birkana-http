@@ -1,5 +1,14 @@
 [development]
-address = "localhost"
+address = "0.0.0.0"
 port = 8080
 log = "normal"
 template_dir = "templates/"
+workers = 5
+
+[production]
+secret_key=""
+address = "0.0.0.0"
+port = 8080
+log = "critical"
+template_dir = "templates/"
+workers = 100

@@ -3,14 +3,17 @@ name = "rust-birkana-http"
 version = "0.1.0"
 authors = ["Nemec Lukas <lukas.nemec2@firma.seznam.cz>"]
 
+[profile.release]
+debug = true
+
 [dependencies]
-rocket = "0.1.5"
-rocket_codegen = "0.1.5"
+rocket = "0.3.14"
+rocket_codegen = "0.3.14"
 rust-birkana = "1.1.1"
 serde = "*"
 serde_derive = "*"
 
 [dependencies.rocket_contrib]
-version = "0.1.5"
+version = "*"
 default-features = false
 features = ["tera_templates"]
