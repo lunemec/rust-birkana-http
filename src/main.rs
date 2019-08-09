@@ -1,56 +1,64 @@
-#![feature(plugin, custom_derive)]
-#![plugin(rocket_codegen)]
+use std::{env, io};
 
-extern crate rocket;
-extern crate rocket_contrib;
-extern crate rust_birkana;
-#[macro_use]
-extern crate serde_derive;
-
-use std::path::{Path, PathBuf};
-
-use rocket::http::ContentType;
-use rocket::request::Form;
-use rocket::response::content::Content;
-use rocket::response::NamedFile;
-use rocket_contrib::Template;
+use actix_files as fs;
+use actix_web::{
+    error, middleware, web, App, HttpResponse, HttpServer,
+    Result,
+};
+use log::{error};
+use env_logger;
+use tera::{compile_templates};
+use serde_derive::{Deserialize};
 
 use rust_birkana::document_from_string;
 
-#[derive(FromForm)]
-struct Text {
+#[derive(Deserialize)]
+pub struct FormData {
     text: String,
 }
 
-#[derive(Serialize)]
-struct TemplateContext {
-    name: String,
+fn index(tmpl: web::Data<tera::Tera>) -> Result<HttpResponse> {
+    let body = tmpl.render("index.html.tera", &tera::Context::new())
+        .map_err(|err| {
+            error!("error rendering index template: {}", err);
+            error::ErrorInternalServerError("Template error")
+        })?;
+
+    Ok(HttpResponse::Ok()
+        .content_type("text/html")
+        .body(body))
 }
 
-#[get("/")]
-fn index() -> Template {
-    let context = TemplateContext {
-        name: "".to_string(),
-    };
-    Template::render("index", &context)
-}
-
-#[get("/static/<file..>")]
-fn staticfiles(file: PathBuf) -> Option<NamedFile> {
-    NamedFile::open(Path::new("static/").join(file)).ok()
-}
-
-#[post("/generate", data = "<input_form>")]
-fn generate(input_form: Form<Text>) -> Content<String> {
-    let input = input_form.get();
-    let hex_string: String = input.text.bytes().map(|x| format!("{:x}", x)).collect();
+fn generate(params: web::Form<FormData>) -> Result<HttpResponse> {
+    let hex_string: String = params.text.bytes().map(|x| format!("{:x}", x)).collect();
     let document = document_from_string(hex_string);
-    Content(ContentType::SVG, document.to_string())
+    
+    Ok(HttpResponse::Ok()
+        .content_type("image/svg+xml")
+        .body(document.to_string()))
 }
 
-fn main() {
-    rocket::ignite()
-        .mount("/", routes![index, staticfiles, generate])
-        .attach(Template::fairing())
-        .launch();
+fn main() -> io::Result<()> {
+    env::set_var("RUST_LOG", "error,actix_web=debug");
+    env_logger::init();
+    let sys = actix_rt::System::new("basic-example");
+
+    HttpServer::new(|| {
+        let tera =
+            compile_templates!("templates/**/*");
+
+        App::new()
+            .data(tera)
+            .wrap(middleware::Logger::default())
+            .service(
+                web::resource("/").route(web::get().to(index)),
+            )
+            .service(web::resource("/generate").route(web::post().to(generate)))
+            .service(fs::Files::new("/static", "static"))
+    })
+    .keep_alive(65)
+    .bind("127.0.0.1:8080")?
+    .start();
+
+    sys.run()
 }

@@ -1,16 +1,22 @@
 [package]
+edition = '2018'
 name = "rust-birkana-http"
-version = "0.1.0"
-authors = ["Nemec Lukas <lukas.nemec2@firma.seznam.cz>"]
+version = "0.2.0"
+authors = ["Lukas Nemec <lu.nemec@gmail.com>"]
 
 [dependencies]
-rocket = "0.3.14"
-rocket_codegen = "0.3.14"
-rust-birkana = "1.1.1"
-serde = "*"
-serde_derive = "*"
+log = "*"
+actix-rt = "0.2.2"
+actix-web = "1.0.0"
+actix-files = "0.1.1"
+actix-session = "0.1.0"
 
-[dependencies.rocket_contrib]
-version = "0.3.14"
-default-features = false
-features = ["tera_templates"]
+tera = "0.11"
+serde = "1.0"
+serde_derive = "1.0"
+
+futures = "0.1.25"
+env_logger = "0.5"
+bytes = "0.4"
+
+rust-birkana = "1.1.2"
