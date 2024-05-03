@@ -1,14 +1,16 @@
 use std::{env, io};
+use std::time::Duration;
 
 use actix_files as fs;
 use actix_web::{
     error, middleware, web, App, HttpResponse, HttpServer,
     Result,
 };
-use log::{error};
+use log::error;
 use env_logger;
-use tera::{compile_templates};
-use serde_derive::{Deserialize};
+use tera::Tera;
+use serde_derive::Deserialize;
+use num_cpus;
 
 use rust_birkana::document_from_string;
 
@@ -17,7 +19,7 @@ pub struct FormData {
     text: String,
 }
 
-fn index(tmpl: web::Data<tera::Tera>) -> Result<HttpResponse> {
+async fn index(tmpl: web::Data<tera::Tera>) -> Result<HttpResponse> {
     let body = tmpl.render("index.html.tera", &tera::Context::new())
         .map_err(|err| {
             error!("error rendering index template: {}", err);
@@ -29,7 +31,7 @@ fn index(tmpl: web::Data<tera::Tera>) -> Result<HttpResponse> {
         .body(body))
 }
 
-fn generate(params: web::Form<FormData>) -> Result<HttpResponse> {
+async fn generate(params: web::Form<FormData>) -> Result<HttpResponse> {
     let hex_string: String = params.text.bytes().map(|x| format!("{:x}", x)).collect();
     let document = document_from_string(hex_string);
     
@@ -38,17 +40,22 @@ fn generate(params: web::Form<FormData>) -> Result<HttpResponse> {
         .body(document.to_string()))
 }
 
-fn main() -> io::Result<()> {
+#[actix_web::main]
+async fn main() -> io::Result<()> {
     env::set_var("RUST_LOG", "error,actix_web=debug");
     env_logger::init();
-    let sys = actix_rt::System::new("basic-example");
 
     HttpServer::new(|| {
-        let tera =
-            compile_templates!("templates/**/*");
+        let tera = match Tera::new("templates/**/*") {
+            Ok(t) => t,
+            Err(e) => {
+                println!("Parsing error(s): {}", e);
+                ::std::process::exit(1);
+            }
+        };
 
         App::new()
-            .data(tera)
+            .app_data(web::Data::new(tera))
             .wrap(middleware::Logger::default())
             .service(
                 web::resource("/").route(web::get().to(index)),
@@ -56,9 +63,9 @@ fn main() -> io::Result<()> {
             .service(web::resource("/generate").route(web::post().to(generate)))
             .service(fs::Files::new("/static", "static"))
     })
-    .keep_alive(65)
-    .bind("127.0.0.1:8080")?
-    .start();
-
-    sys.run()
+    .keep_alive(Duration::new(65,0))
+    .bind(("0.0.0.0", 8080))?
+    .workers(num_cpus::get())
+    .run()
+    .await
 }
